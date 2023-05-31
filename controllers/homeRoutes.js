@@ -11,11 +11,15 @@ router.get('/', async (req, res) => {
           model: User,
           attributes: ['name'],
         },
+        {
+          mode: Comment,
+          attributes: ["comment_body"],
+        }
       ],
     });
 
     // Serialize data so the template can read it
-    const blogPosts = blogPostData.map((project) => project.get({ plain: true }));
+    const blogPosts = blogPostData.map((blogPost) => blogPost.get({ plain: true }));
 
     // Pass serialized data and session flag into template
     res.render('homepage', { 
@@ -35,13 +39,17 @@ router.get('/blogPost/:id', async (req, res) => {
           model: User,
           attributes: ['name'],
         },
+        {
+          model: Comment,
+          include: [User],
+        }
       ],
     });
 
-    const blogPosts = blogPostData.get({ plain: true });
+    const blogPost = blogPostData.get({ plain: true });
 
-    res.render('project', {
-      ...project,
+    res.render('blogPost', {
+      ...blogPost,
       logged_in: req.session.logged_in
     });
   } catch (err) {
@@ -55,12 +63,18 @@ router.get('/profile', withAuth, async (req, res) => {
     // Find the logged in user based on the session ID
     const userData = await User.findByPk(req.session.user_id, {
       attributes: { exclude: ['password'] },
-      include: [{ model: Project }],
+      include: [
+        { 
+          model: BlogPost 
+        },
+        {
+          model: Comment,
+        }],
     });
 
     const user = userData.get({ plain: true });
 
-    res.render('profile', {
+    res.render('dashboard', {
       ...user,
       logged_in: true
     });
@@ -72,7 +86,7 @@ router.get('/profile', withAuth, async (req, res) => {
 router.get('/login', (req, res) => {
   // If the user is already logged in, redirect the request to another route
   if (req.session.logged_in) {
-    res.redirect('/profile');
+    res.redirect('/dashboard');
     return;
   }
 
